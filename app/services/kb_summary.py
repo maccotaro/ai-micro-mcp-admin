@@ -16,9 +16,8 @@ class KBSummaryService:
     async def get_summary(self, knowledge_base_id: UUID) -> Dict[str, Any]:
         """ナレッジベースのサマリーを取得"""
 
+        db = next(get_db())
         try:
-            db = next(get_db())
-
             # サマリーデータを取得
             query = text("""
                 SELECT
@@ -56,3 +55,6 @@ class KBSummaryService:
         except Exception as e:
             logger.error(f"Error getting KB summary: {e}")
             raise
+        finally:
+            # 接続を確実にクローズ（接続リーク防止）
+            db.close()

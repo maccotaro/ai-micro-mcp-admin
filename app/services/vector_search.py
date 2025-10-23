@@ -1,4 +1,5 @@
 """ベクトル検索サービス"""
+import asyncio
 import logging
 from typing import List, Dict, Any
 from uuid import UUID
@@ -34,7 +35,7 @@ class VectorSearchService:
         threshold: float = 0.6,
         top_k: int = 10
     ) -> List[Dict[str, Any]]:
-        """ベクトル検索を実行"""
+        """ベクトル検索を実行（非同期対応）"""
 
         try:
             logger.info(
@@ -48,8 +49,9 @@ class VectorSearchService:
                 "knowledge_base_id": str(knowledge_base_id)
             }
 
-            # 検索実行
-            results = self.vector_store.similarity_search_with_score(
+            # 同期ブロッキング処理を別スレッドで実行（並行処理対応）
+            results = await asyncio.to_thread(
+                self.vector_store.similarity_search_with_score,
                 query,
                 k=top_k,
                 filter=filter_condition
