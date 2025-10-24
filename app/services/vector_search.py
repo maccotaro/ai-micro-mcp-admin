@@ -44,28 +44,37 @@ class VectorSearchService:
                 f"threshold={threshold}, top_k={top_k}"
             )
 
-            # フィルタ条件
-            filter_condition = {
-                "knowledge_base_id": str(knowledge_base_id)
-            }
+            # LangChain PGVectorのfilter機能に問題があるため、
+            # filterなしで検索してから手動でフィルタリング
+            # より多くの結果を取得してから絞り込む
+            search_k = top_k * 10  # 10倍の結果を取得
 
             # 同期ブロッキング処理を別スレッドで実行（並行処理対応）
             results = await asyncio.to_thread(
                 self.vector_store.similarity_search_with_score,
                 query,
-                k=top_k,
-                filter=filter_condition
+                k=search_k
             )
 
-            # 閾値フィルタリング
+            # knowledge_base_idと閾値でフィルタリング
             filtered_results = []
             for doc, score in results:
-                if score <= threshold:  # コサイン距離: 低い方が類似
-                    filtered_results.append({
-                        "content": doc.page_content,
-                        "score": float(score),
-                        "metadata": doc.metadata
-                    })
+                # メタデータでKB IDをチェック
+                if doc.metadata.get("knowledge_base_id") == str(knowledge_base_id):
+                    # LangChainのPGVectorは類似度（高い=類似）を返すため、
+                    # 距離に変換してから閾値と比較
+                    distance = 1.0 - score
+                    logger.debug(f"KB ID match, Similarity: {score:.4f}, Distance: {distance:.4f}, Threshold: {threshold}")
+
+                    if distance <= threshold:
+                        filtered_results.append({
+                            "content": doc.page_content,
+                            "score": float(score),
+                            "metadata": doc.metadata
+                        })
+                        # 必要な数だけ取得したら終了
+                        if len(filtered_results) >= top_k:
+                            break
 
             logger.info(f"Found {len(filtered_results)} results")
             return filtered_results
