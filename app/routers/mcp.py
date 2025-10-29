@@ -1,5 +1,6 @@
 """MCPエンドポイント"""
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from uuid import UUID
 from typing import Dict, Any
 import logging
@@ -11,6 +12,7 @@ from app.core.permissions import require_knowledge_base_access
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/mcp", tags=["MCP"])
+security = HTTPBearer()
 
 
 @router.get("/tools")
@@ -39,7 +41,8 @@ async def list_tools(
 @router.post("/call_tool")
 async def call_tool(
     request: dict,
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """MCPツールを呼び出し（認証必須）"""
 
@@ -63,9 +66,12 @@ async def call_tool(
                 detail="Invalid knowledge_base_id format"
             )
 
-    # MCPツール実行
+    # JWTトークンを抽出
+    jwt_token = credentials.credentials
+
+    # MCPツール実行（JWTトークンを渡す）
     mcp_server = get_mcp_server()
-    result = await mcp_server.execute_tool(tool_name, arguments)
+    result = await mcp_server.execute_tool(tool_name, arguments, jwt_token=jwt_token)
 
     return {
         "result": result

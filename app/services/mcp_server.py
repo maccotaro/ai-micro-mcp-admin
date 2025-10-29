@@ -106,6 +106,30 @@ class KnowledgeBaseMCPServer:
                         },
                         "required": ["knowledge_base_id"]
                     }
+                ),
+                Tool(
+                    name="normalize_ocr_text",
+                    description=(
+                        "Normalize OCR text by converting context-appropriate hyphens to Japanese long vowel marks. "
+                        "\n\nThis tool uses LLM to intelligently detect katakana words with hyphens and convert them "
+                        "to proper long vowel marks based on context."
+                        "\n\nExamples:"
+                        "\n- 'テレワ-ク勤務規程' → 'テレワーク勤務規程'"
+                        "\n- 'マイナビ-広告' → 'マイナビー広告'"
+                        "\n\nUse this tool for:"
+                        "\n- OCR text preprocessing before indexing"
+                        "\n- Batch normalization of existing documents"
+                    ),
+                    inputSchema={
+                        "type": "object",
+                        "properties": {
+                            "text": {
+                                "type": "string",
+                                "description": "OCR text to normalize"
+                            }
+                        },
+                        "required": ["text"]
+                    }
                 )
         ]
 
@@ -127,6 +151,8 @@ class KnowledgeBaseMCPServer:
                     result = await self._search_documents(**arguments)
                 elif name == "get_knowledge_base_summary":
                     result = await self._get_kb_summary(**arguments)
+                elif name == "normalize_ocr_text":
+                    result = await self._normalize_ocr_text(**arguments)
                 else:
                     return [TextContent(
                         type="text",
@@ -151,9 +177,18 @@ class KnowledgeBaseMCPServer:
         query: str,
         knowledge_base_id: str,
         threshold: float = 0.6,
-        max_results: int = 10
+        max_results: int = 10,
+        jwt_token: Optional[str] = None
     ) -> Dict[str, Any]:
-        """ドキュメント検索を実行"""
+        """ドキュメント検索を実行
+
+        Args:
+            query: 検索クエリ
+            knowledge_base_id: ナレッジベースID
+            threshold: 類似度閾値
+            max_results: 最大結果数
+            jwt_token: JWTトークン（内部API呼び出し用）
+        """
 
         kb_uuid = UUID(knowledge_base_id)
 
@@ -161,7 +196,8 @@ class KnowledgeBaseMCPServer:
             query=query,
             knowledge_base_id=kb_uuid,
             threshold=threshold,
-            top_k=max_results
+            top_k=max_results,
+            jwt_token=jwt_token
         )
 
         return {
@@ -201,19 +237,113 @@ class KnowledgeBaseMCPServer:
             "generated_at": summary["generated_at"]
         }
 
+    async def _normalize_ocr_text(self, text: str) -> Dict[str, Any]:
+        """OCR結果テキストをLLM経由で正規化
+
+        カタカナ語の文脈でハイフン「-」を長音符「ー」に変換する。
+        LLM（Ollama）を使用して文脈を考慮した正確な正規化を行う。
+
+        Args:
+            text: 正規化対象のOCRテキスト
+
+        Returns:
+            Dict[str, Any]: 正規化結果
+        """
+        try:
+            import httpx
+            from app.core.config import settings
+
+            # Ollama APIを使用してLLM正規化
+            prompt = f"""以下のOCR結果テキストを正規化してください。
+
+**正規化ルール**:
+1. カタカナ語の後のハイフン「-」を長音符「ー」に変換
+2. 文脈を考慮して適切に判断（例: 数式や欧文の「-」は変換しない）
+3. 変換例:
+   - 「テレワ-ク」→「テレワーク」
+   - 「マイナビ-」→「マイナビー」
+   - 「スキ-ム」→「スキーム」
+
+**重要**: 正規化後のテキストのみを返してください。説明文は不要です。
+
+---
+対象テキスト:
+{text}
+---
+
+正規化後のテキスト:"""
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.post(
+                    f"{settings.ollama_base_url}/api/generate",
+                    json={
+                        "model": "pakachan/elyza-llama3-8b:latest",
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.1,  # 低温度で安定した出力
+                            "top_p": 0.9
+                        }
+                    }
+                )
+                response.raise_for_status()
+
+                result = response.json()
+                normalized_text = result.get("response", "").strip()
+
+                # LLMが余計な説明を含む場合に備えて、最初の実質的なテキストのみ抽出
+                if "\n" in normalized_text:
+                    lines = [line.strip() for line in normalized_text.split("\n") if line.strip()]
+                    # 説明文を除外（「正規化後」「以下は」などを含む行をスキップ）
+                    for line in lines:
+                        if not any(keyword in line for keyword in ["正規化後", "以下は", "対象テキスト", "---"]):
+                            normalized_text = line
+                            break
+
+                logger.info(f"OCR normalization: '{text[:50]}...' → '{normalized_text[:50]}...'")
+
+                return {
+                    "original_text": text,
+                    "normalized_text": normalized_text,
+                    "status": "success"
+                }
+
+        except Exception as e:
+            logger.error(f"Error normalizing OCR text: {e}")
+            # エラー時は元のテキストを返す
+            return {
+                "original_text": text,
+                "normalized_text": text,
+                "status": "error",
+                "error": str(e)
+            }
+
     def get_tools(self) -> List[Tool]:
         """利用可能なツール一覧を返す"""
         return self.tools_list
 
-    async def execute_tool(self, name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """ツールを実行"""
+    async def execute_tool(
+        self,
+        name: str,
+        arguments: Dict[str, Any],
+        jwt_token: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """ツールを実行
+
+        Args:
+            name: ツール名
+            arguments: ツール引数
+            jwt_token: JWTトークン（内部API呼び出し用）
+        """
         try:
             logger.info(f"Executing tool: {name} with args: {arguments}")
 
             if name == "search_documents":
-                result = await self._search_documents(**arguments)
+                result = await self._search_documents(**arguments, jwt_token=jwt_token)
             elif name == "get_knowledge_base_summary":
                 result = await self._get_kb_summary(**arguments)
+            elif name == "normalize_ocr_text":
+                result = await self._normalize_ocr_text(**arguments)
             else:
                 raise ValueError(f"Unknown tool: {name}")
 

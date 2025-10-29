@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://:password@host.docker.internal:6379"
 
+    # API Admin (Hybrid Search API)
+    api_admin_url: str = "http://host.docker.internal:8003"
+
     # Ollama
     ollama_base_url: str = "http://host.docker.internal:11434"
     embedding_model: str = "embeddinggemma:300m"
