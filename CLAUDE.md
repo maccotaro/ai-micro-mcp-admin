@@ -281,6 +281,37 @@ curl -X POST http://localhost:8004/mcp/chat \
 - Delegated query intent detection to LLM
 - Removed 200+ lines of frontend intent logic
 
+### 2025-11-27: Multiplatform Support
+
+**Added**:
+- ✅ `Dockerfile.mac` for M3 Mac support
+- ✅ `docker-compose.mac.yml` for Mac-specific configuration
+- ✅ `torch>=2.0.0` to requirements.txt (explicit PyTorch dependency)
+
+**Changes**:
+- TORCH_COMPILE disabled for CPU environments (M3 Mac)
+- Optimized environment variables for ARM64
+- Consistent configuration with ai-micro-api-admin
+
+**Startup Commands**:
+
+**WSL2 + NVIDIA GPU** (default):
+```bash
+cd ai-micro-mcp-admin
+docker compose up -d
+```
+
+**M3 Mac** (CPU only):
+```bash
+cd ai-micro-mcp-admin
+docker compose -f docker-compose.mac.yml up -d
+```
+
+**Benefits**:
+- Consistent behavior across WSL2 and M3 Mac
+- Explicit PyTorch version control
+- ARM64 optimization for M3 Mac
+
 ## Troubleshooting
 
 ### High Response Times

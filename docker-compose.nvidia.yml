@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mcp-admin:
+    build: .
+    container_name: ai-micro-mcp-admin
+    ports:
+      - "8004:8004"
+    environment:
+      # Database
+      - DATABASE_URL=postgresql://postgres:password@host.docker.internal:5432/admindb
+
+      # Redis
+      - REDIS_URL=redis://:cfb4602f86707acf2a264bac18456bdafb4c9acd11e6cc1d89f606d1e2dc679f@host.docker.internal:6379
+
+      # Ollama
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - EMBEDDING_MODEL=embeddinggemma:300m
+      - CHAT_MODEL=pakachan/elyza-llama3-8b:latest
+
+      # Vector Store
+      - COLLECTION_NAME=admin_documents
+
+      # Authentication
+      - JWKS_URL=http://host.docker.internal:8002/.well-known/jwks.json
+      - JWT_ALGORITHM=RS256
+      - JWT_AUDIENCE=fastapi-api
+      - JWT_ISSUER=https://auth.example.com
+
+    volumes:
+      - ./app:/app/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: ai-micro-network
+    external: true

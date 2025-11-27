@@ -1,3 +1,6 @@
+# PyTorch (CPU/GPU auto-selection based on environment)
+torch>=2.0.0
+
 # FastAPI & Uvicorn
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
