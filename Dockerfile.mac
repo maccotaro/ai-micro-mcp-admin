@@ -1,0 +1,26 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# システムパッケージ（最小構成）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# M3 Mac環境最適化
+ENV PYTHONUNBUFFERED=1
+ENV TORCH_COMPILE=0
+
+# Python依存関係
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# アプリケーションコード
+COPY ./app ./app
+
+# ポート公開
+EXPOSE 8004
+
+# 起動コマンド
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004", "--reload"]
