@@ -39,7 +39,7 @@ class VectorSearchService:
 
         # HTTPクライアント設定
         self.client = httpx.AsyncClient(
-            timeout=30.0,  # 30秒タイムアウト
+            timeout=120.0,  # 2分タイムアウト（Cross-Encoder re-rankingに時間がかかるため）
             limits=httpx.Limits(max_keepalive_connections=5, max_connections=10)
         )
 
