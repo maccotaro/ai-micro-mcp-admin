@@ -49,3 +49,13 @@ ai-micro-mcp-admin/
 - `EMBEDDING_MODEL`: Embedding model name
 - `JWT_SECRET_KEY`: JWT signing key
 - `JWKS_URL`: JWKS endpoint URL
+
+## Recent Changes (2025-12)
+- **GPU設定追加**: docker-compose.ymlにNVIDIA GPU予約設定を追加
+  - `deploy.resources.reservations.devices`でGPU割り当て
+  - WSL2 GPUドライバマウント (`/usr/lib/wsl`)
+  - GPU環境変数 (NVIDIA_VISIBLE_DEVICES, LD_LIBRARY_PATH等)
+- **version属性削除**: docker-compose.ymlから非推奨のversion: '3.8'を削除
+- **HTTP タイムアウト延長**: Cross-Encoder re-ranking用に120秒に延長
+- **非同期最適化**: `asyncio.to_thread()` でブロッキング処理を非同期化
+- **接続プール最適化**: 20 base + 30 overflow、30秒タイムアウト、1時間TTL
