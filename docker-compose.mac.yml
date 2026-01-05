@@ -17,7 +17,11 @@ services:
       # Ollama
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - EMBEDDING_MODEL=embeddinggemma:300m
-      - CHAT_MODEL=pakachan/elyza-llama3-8b:latest
+      # LLM Model Options (smaller = faster, less accurate):
+      # - gemma3:4b (3.3GB) - Fast, lightweight
+      # - qwen2.5:7b (4.7GB) - Balanced
+      # - pakachan/elyza-llama3-8b (4.9GB) - Japanese optimized
+      - CHAT_MODEL=gemma3:4b
 
       # Vector Store
       - COLLECTION_NAME=admin_documents
