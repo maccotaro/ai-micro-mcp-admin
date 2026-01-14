@@ -11,6 +11,7 @@ MCP (Model Context Protocol) Admin Service that provides intelligent chat functi
 - **Vector Store**: PGVector (PostgreSQL + pgvector extension)
 - **Database**: PostgreSQL via SQLAlchemy
 - **Container**: Docker
+- **Port**: 8012
 
 ## Project Structure
 ```
@@ -30,7 +31,8 @@ ai-micro-mcp-admin/
 │   │   └── kb_summary.py        # Knowledge base summary service
 │   └── routers/
 │       └── mcp.py               # MCP endpoints
-├── Dockerfile
+├── Dockerfile                   # NVIDIA GPU version
+├── Dockerfile.mac               # M3 Mac (CPU) version
 ├── docker-compose.yml           # NVIDIA GPU version
 ├── docker-compose.mac.yml       # M3 Mac (CPU) version
 ├── requirements.txt
@@ -50,12 +52,14 @@ ai-micro-mcp-admin/
 - `JWT_SECRET_KEY`: JWT signing key
 - `JWKS_URL`: JWKS endpoint URL
 
-## Recent Changes (2025-12)
-- **GPU設定追加**: docker-compose.ymlにNVIDIA GPU予約設定を追加
-  - `deploy.resources.reservations.devices`でGPU割り当て
-  - WSL2 GPUドライバマウント (`/usr/lib/wsl`)
-  - GPU環境変数 (NVIDIA_VISIBLE_DEVICES, LD_LIBRARY_PATH等)
-- **version属性削除**: docker-compose.ymlから非推奨のversion: '3.8'を削除
+## Performance Optimizations
+- **GPU設定**: docker-compose.ymlにNVIDIA GPU予約設定
 - **HTTP タイムアウト延長**: Cross-Encoder re-ranking用に120秒に延長
 - **非同期最適化**: `asyncio.to_thread()` でブロッキング処理を非同期化
 - **接続プール最適化**: 20 base + 30 overflow、30秒タイムアウト、1時間TTL
+
+## マルチプラットフォーム対応
+- **WSL2 + NVIDIA GPU**: `docker compose up -d`
+- **M3 Mac (CPU)**: `docker compose -f docker-compose.mac.yml up -d`
+
+## 最終更新: 2026-01-14
