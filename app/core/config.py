@@ -21,8 +21,11 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://:password@host.docker.internal:6379"
 
-    # API Admin (Hybrid Search API)
+    # API Admin
     api_admin_url: str = "http://host.docker.internal:8003"
+
+    # RAG Service (9-stage hybrid search pipeline)
+    rag_service_url: str = "http://host.docker.internal:8010"
 
     # Ollama
     ollama_base_url: str = "http://host.docker.internal:11434"
