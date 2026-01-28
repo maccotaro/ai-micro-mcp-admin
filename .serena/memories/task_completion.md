@@ -1,50 +1,47 @@
-# Task Completion Checklist for ai-micro-mcp-admin
+# ai-micro-mcp-admin Task Completion Checklist
 
-## Before Completing a Task
+## Before Completing Any Task
 
 ### 1. Code Quality
-- [ ] File does not exceed 500 lines
-- [ ] Type hints added to all functions
-- [ ] Error handling with proper cleanup
-- [ ] Async patterns used for I/O operations
+- [ ] 型ヒントが適切に使用されている
+- [ ] ファイルサイズが500行以下
+- [ ] 適切なエラーハンドリング
+- [ ] ログ出力が適切
 
-### 2. Testing
-```bash
-# Health check
-curl http://localhost:8004/health
+### 2. Async Patterns
+- [ ] I/O操作はasyncio.to_threadでラップ
+- [ ] ブロッキング操作がない
+- [ ] 適切なawait使用
 
-# Test MCP functionality (requires valid JWT)
-curl -X POST http://localhost:8004/mcp/chat \
-  -H "Authorization: Bearer $JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "test", "knowledge_base_id": "test-kb-id"}'
-```
+### 3. Database
+- [ ] コネクションが適切にクローズされる
+- [ ] finallyブロックでの接続解放
+- [ ] プール設定が適切
 
-### 3. Docker Verification
-```bash
-# Restart service after changes
-docker compose restart
+### 4. MCP Tools
+- [ ] スキーマ定義が正確
+- [ ] ハンドラーの実装
+- [ ] call_toolへの登録
+- [ ] エラーハンドリング
 
-# Check logs for errors
-docker compose logs -f ai-micro-mcp-admin
+### 5. Authentication
+- [ ] JWT検証が適切
+- [ ] 権限チェック
+- [ ] JWKS検証
 
-# Verify container is running
-docker ps | grep mcp-admin
-```
+### 6. Testing
+- [ ] ヘルスチェックが動作
+- [ ] MCPツールのテスト
+- [ ] エラーケースの確認
 
-### 4. Documentation
-- [ ] Update CLAUDE.md if architecture changed
-- [ ] Update comments if behavior changed
-- [ ] Add docstrings for new functions
-
-### 5. Integration
-- [ ] Verify integration with ai-micro-api-admin
-- [ ] Check JWT authentication works
-- [ ] Verify PostgreSQL connection
+### 7. Performance
+- [ ] コネクションプール使用状況確認
+- [ ] レスポンス時間確認
+- [ ] 同時リクエスト対応
 
 ## After Task Completion
-
-1. Run health check to confirm service is stable
-2. Test any modified endpoints
-3. Check container logs for errors
-4. Update relevant documentation
+- [ ] ヘルスチェック確認
+- [ ] MCPチャットテスト
+- [ ] コネクションプール状態確認
+- [ ] Dockerビルド確認
+- [ ] ドキュメント更新（CLAUDE.md）

@@ -1,52 +1,62 @@
-# Code Style and Conventions for ai-micro-mcp-admin
+# ai-micro-mcp-admin Code Style Guidelines
 
-## File Size Limits
-- **Maximum lines per file**: 500 lines (including comments and blank lines)
-- Automatically refactor if approaching 500 lines
+## Python Standards
+- Python 3.11+を使用
+- 型ヒントを必ず使用
+- async/awaitをI/O操作に優先使用
 
-## Python Code Style
+## File Size Limit
+- **500行以下/ファイル**（ドキュメントを除く）
 
-### Type Hints
-- Use Python type annotations for all functions
-- Example:
-```python
-def search_documents(query: str, kb_id: str, threshold: float = 0.6) -> List[Dict]:
-    ...
+## Directory Structure
+```
+app/
+├── main.py                  # FastAPIアプリケーション
+├── core/
+│   ├── config.py            # 設定管理
+│   ├── database.py          # データベース接続プール
+│   └── auth.py              # JWT認証
+├── services/
+│   ├── mcp_server.py        # MCPサーバー実装
+│   ├── vector_search.py     # ベクトル検索（async）
+│   └── kb_summary.py        # ナレッジベース要約
+└── routers/
+    └── mcp.py               # MCPエンドポイント
 ```
 
-### Async/Await
-- Prefer async for I/O operations
-- Wrap blocking operations with `asyncio.to_thread()`
+## Async Patterns
 ```python
+# I/O操作はasyncio.to_threadでラップ
 results = await asyncio.to_thread(
-    self.vector_store.similarity_search_with_score,
-    query, k=top_k, filter=filter_condition
+    blocking_function,
+    arg1, arg2
 )
 ```
 
-### Error Handling
-- Comprehensive logging and error messages
-- Use try/except with proper cleanup in finally blocks
+## Database Connection Management
+```python
+# 必ずfinallyブロックで接続を閉じる
+try:
+    session = SessionLocal()
+    # 処理
+finally:
+    session.close()
+```
 
-### Naming Conventions
-- Classes: PascalCase (e.g., `VectorSearchService`)
-- Functions/Methods: snake_case (e.g., `search_documents`)
-- Constants: UPPER_SNAKE_CASE (e.g., `DATABASE_URL`)
-- Private methods: _leading_underscore (e.g., `_create_tools_list`)
+## Error Handling
+- 包括的なロギング
+- 詳細なエラーメッセージ
+- 適切なHTTPステータスコード
 
-### Docstrings
-- Use docstrings for public functions and classes
-- Keep comments minimal where code is self-explanatory
+## MCP Tool Implementation
+1. `_create_tools_list()`でスキーマ定義
+2. ハンドラメソッドを実装
+3. `call_tool()`デコレータで登録
+4. テスト追加
+5. ドキュメント更新
 
-## Adding New MCP Tools
-
-1. Define tool schema in `app/services/mcp_server.py:_create_tools_list()`
-2. Implement handler method (e.g., `_my_new_tool()`)
-3. Register in `call_tool()` decorator
-4. Add integration tests
-5. Update CLAUDE.md documentation
-
-## Database Patterns
-- Use connection pool with proper lifecycle management
-- Always close connections in `finally` blocks
-- Singleton pattern for service instances
+## Import Order
+1. 標準ライブラリ
+2. サードパーティ（fastapi, sqlalchemy等）
+3. ローカルモジュール
+4. 型定義

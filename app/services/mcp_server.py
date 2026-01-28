@@ -317,10 +317,19 @@ class KnowledgeBaseMCPServer:
             # Format results for LLM consumption
             formatted_results = []
             for item in data.get("results", []):
+                # metadataにcollection_id, document_idを追加（トップレベルから）
+                metadata = item.get("metadata", {})
+                if item.get("collection_id"):
+                    metadata["collection_id"] = item.get("collection_id")
+                if item.get("document_id"):
+                    metadata["document_id"] = item.get("document_id")
+                if item.get("chunk_id"):
+                    metadata["chunk_id"] = item.get("chunk_id")
+
                 result_item = {
                     "content": item.get("content", ""),
                     "score": item.get("final_score", 0.0),
-                    "metadata": item.get("metadata", {}),
+                    "metadata": metadata,
                     # 追加のスコア情報（デバッグ/分析用）
                     "scores": {
                         "rrf_score": item.get("rrf_score", 0.0),
@@ -384,15 +393,11 @@ class KnowledgeBaseMCPServer:
 
         summary = await self.summary_service.get_summary(kb_uuid)
 
+        # summary_text に統計情報・コレクション名・主要トピックがすべて含まれているため、
+        # 重複を避けるために statistics セクションは返さない
         return {
             "knowledge_base_id": knowledge_base_id,
             "summary": summary["summary_text"],
-            "statistics": {
-                "total_documents": summary["total_documents"],
-                "total_collections": summary["total_collections"],
-                "total_chunks": summary["total_chunks"],
-                "key_topics": summary["key_topics"]
-            },
             "generated_at": summary["generated_at"]
         }
 

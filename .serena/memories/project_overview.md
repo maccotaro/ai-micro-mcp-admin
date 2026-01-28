@@ -1,65 +1,61 @@
-# ai-micro-mcp-admin - Project Overview
+# ai-micro-mcp-admin Project Overview
 
 ## Purpose
-MCP (Model Context Protocol) Admin Service that provides intelligent chat functionality for knowledge bases. Implements MCP server capabilities with JWT authentication, vector search, and knowledge base summarization.
+MCP（Model Context Protocol）管理サービス。ナレッジベース向けのインテリジェントチャット機能を提供。MCPサーバー機能、JWT認証、ベクトル検索、ナレッジベース要約を実装。
 
-## Tech Stack
+## Technology Stack
 - **Framework**: FastAPI
 - **Language**: Python 3.11+
 - **MCP**: Model Context Protocol SDK
 - **Embeddings**: Ollama (embeddinggemma:300m)
-- **Vector Store**: PGVector (PostgreSQL + pgvector extension)
-- **Database**: PostgreSQL via SQLAlchemy
+- **Vector Store**: PGVector (PostgreSQL + pgvector拡張)
+- **Database**: PostgreSQL (SQLAlchemy)
 - **Container**: Docker
-- **Port**: 8012
 
-## Project Structure
+## Architecture
 ```
-ai-micro-mcp-admin/
-├── app/
-│   ├── main.py                  # FastAPI application
-│   ├── core/
-│   │   ├── config.py            # Configuration settings
-│   │   ├── database.py          # Database connection pool
-│   │   ├── auth.py              # JWT authentication
-│   │   └── permissions.py       # Permission handling
-│   ├── dependencies/
-│   │   └── auth.py              # Auth dependencies
-│   ├── services/
-│   │   ├── mcp_server.py        # MCP server implementation
-│   │   ├── vector_search.py     # Vector search service (async)
-│   │   └── kb_summary.py        # Knowledge base summary service
-│   └── routers/
-│       └── mcp.py               # MCP endpoints
-├── Dockerfile                   # NVIDIA GPU version
-├── Dockerfile.mac               # M3 Mac (CPU) version
-├── docker-compose.yml           # NVIDIA GPU version
-├── docker-compose.mac.yml       # M3 Mac (CPU) version
-├── requirements.txt
-└── CLAUDE.md
+Frontend (ai-micro-front-admin)
+        ↓
+API Admin (ai-micro-api-admin)
+        ↓
+MCP Admin (ai-micro-mcp-admin) ← This service
+        ↓
+[Vector Search | KB Summary]
+        ↓
+PostgreSQL (admindb + pgvector)
 ```
+
+## MCP Tools
+
+### 1. search_documents
+ナレッジベース内のドキュメントをセマンティック検索。
+
+**Parameters**:
+- `query`: 検索クエリ
+- `knowledge_base_id`: ナレッジベースUUID
+- `threshold`: 類似度閾値 (0.0-1.0, default: 0.6)
+- `max_results`: 最大結果数 (default: 10, max: 50)
+
+### 2. get_knowledge_base_summary
+ナレッジベース全体の概要と統計情報を取得。
+
+**Parameters**:
+- `knowledge_base_id`: ナレッジベースUUID
 
 ## Key Features
-- MCP Server with two tools: search_documents, get_knowledge_base_summary
-- Async vector search with `asyncio.to_thread()`
-- Connection pool optimization (20 base + 30 overflow)
-- JWT authentication via JWKS
+- **Concurrent Request Support**: asyncio.to_threadによる非同期処理
+- **Connection Pool**: 20 base + 30 overflow = 50 connections
+- **JWT Authentication**: RS256アルゴリズム、JWKS検証
 
-## Environment Variables
-- `DATABASE_URL`: PostgreSQL connection string
-- `OLLAMA_BASE_URL`: Ollama API URL
-- `EMBEDDING_MODEL`: Embedding model name
-- `JWT_SECRET_KEY`: JWT signing key
-- `JWKS_URL`: JWKS endpoint URL
+## Port Configuration
+- **Service Port**: 8004
+- **Health Check**: `/health`
 
-## Performance Optimizations
-- **GPU設定**: docker-compose.ymlにNVIDIA GPU予約設定
-- **HTTP タイムアウト延長**: Cross-Encoder re-ranking用に120秒に延長
-- **非同期最適化**: `asyncio.to_thread()` でブロッキング処理を非同期化
-- **接続プール最適化**: 20 base + 30 overflow、30秒タイムアウト、1時間TTL
+## Backend Dependencies
+- PostgreSQL (admindb): pgvector拡張
+- Ollama: embeddinggemma:300mモデル
+- Auth Service: JWKS公開鍵取得
 
-## マルチプラットフォーム対応
+## Multiplatform Support
 - **WSL2 + NVIDIA GPU**: `docker compose up -d`
 - **M3 Mac (CPU)**: `docker compose -f docker-compose.mac.yml up -d`
-
-## 最終更新: 2026-01-14
