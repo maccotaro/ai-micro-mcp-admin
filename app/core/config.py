@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # Ollama
     ollama_base_url: str = "http://host.docker.internal:11434"
-    embedding_model: str = "embeddinggemma:300m"
+    embedding_model: str  # Required: set via EMBEDDING_MODEL env var
     chat_model: str = "pakachan/elyza-llama3-8b:latest"
 
     # Vector Store
